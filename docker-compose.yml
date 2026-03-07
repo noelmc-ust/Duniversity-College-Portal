@@ -22,7 +22,7 @@ services:
 
 
   uni:
-    image: 
+    image: nmc9812/uni:v1.1.0
     container_name: universityapp
     ports:
       - 3004:3000
