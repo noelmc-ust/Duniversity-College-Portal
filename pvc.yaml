@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-retail-pvc
+  namespace: retail-ns
+spec:
+  storageClassName: nfs-csi-retail
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 8Gi

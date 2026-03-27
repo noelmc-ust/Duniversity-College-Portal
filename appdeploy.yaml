@@ -1,0 +1,335 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: noel-gateway
+  namespace: noel-ns
+spec:
+  gatewayClassName: kgateway
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:     
+          from: All
+
+---
+
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi-uni
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: 10.0.1.27
+  share: /var/nfs/general/uni
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+ 
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: uni-ns
+stringData:
+  MARIADB_ROOT_PASSWORD: Root@123
+  MARIADB_DATABASE: mariadb
+  MARIADB_USER: college_user
+  MARIADB_PASSWORD: deereddy@123
+
+---
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deploy
+  namespace: uni-ns
+  labels:
+    app: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      volumes:
+        - name: mysql-uni
+          persistentVolumeClaim:
+            claimName: mysql-uni-pvc
+        - name: mysql-init-uni
+          configMap:
+            name: mysql-uni-init
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-uni
+              mountPath: /var/lib/mysql
+            - name: mysql-init-uni
+              mountPath: /docker-entrypoint-initdb.d
+          env:
+            - name: MARIADB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MARIADB_DATABASE
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MARIADB_PASSWORD
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MARIADB_ROOT_PASSWORD
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MARIADB_USER
+  
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: uni-ns
+spec:
+  selector:
+    app: mysql
+  ports:
+  - port: 3306
+    targetPort: 3306
+  type: ClusterIP
+
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-uni-pvc
+  namespace: uni-ns
+spec:
+  resources:
+    requests:
+      storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi-uni
+ 
+---
+
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: retail-grant
+  namespace: uni-ns
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: noel-ns
+  to:
+    - group: ""
+      kind: Service
+
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: uni-secret
+  namespace: uni-ns
+stringData:
+  DB_USER: college_user
+  DB_PASSWORD: deereddy@123
+  DB_HOST: mariadb
+  DB_PORT: "3306"
+  DB_NAME: mariadb
+  GRIEVANCE_DB: grievance_db
+  LEAVE_DB: leave_db
+  TIMETABLE_DB: timetable_db
+  EXAMS_DB: exams_db
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uni-deploy
+  namespace: uni-ns
+  labels:
+    app: uni
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: uni
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: uni
+    spec:
+      containers:
+        - name: uni-container
+          image: nmc9812/uni:v1.1.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: DB_HOST
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: DB_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: DB_NAME
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: DB_PORT
+            - name: GRIEVANCE_DB
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: GRIEVANCE_DB
+            - name: LEAVE_DB
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: LEAVE_DB
+            - name: TIMETABLE_DB
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: TIMETABLE_DB
+            - name: EXAMS_DB
+              valueFrom:
+                secretKeyRef:
+                  name: uni-secret
+                  key: EXAMS_DB
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "200m"
+              memory: "512Mi"
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: uni-hpa
+  namespace: uni-ns
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: uni-deploy
+  minReplicas: 4
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 85
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 120
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: uni-service
+  namespace: uni-ns
+spec:
+  selector:
+    app: uni
+  ports:
+    - port: 83
+      targetPort: 3000
+  type: NodePort
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: retail-route
+  namespace: noel-ns
+spec:
+  parentRefs:
+    - name: noel-gateway
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: uni-service
+          namespace: uni-ns
+          port: 83
