@@ -35,10 +35,10 @@ metadata:
   name: mysql-secret
   namespace: uni-ns
 stringData:
-  MARIADB_ROOT_PASSWORD: Root@123
-  MARIADB_DATABASE: mariadb
-  MARIADB_USER: college_user
-  MARIADB_PASSWORD: deereddy@123
+  MYSQL_ROOT_PASSWORD: Root@123
+  MYSQL_DATABASE: mariadb
+  MYSQL_USER: college_user
+  MYSQL_PASSWORD: deereddy@123
 
 ---
 
@@ -83,26 +83,26 @@ spec:
             - name: mysql-init-uni
               mountPath: /docker-entrypoint-initdb.d
           env:
-            - name: MARIADB_DATABASE
+            - name: MYSQL_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
-                  key: MARIADB_DATABASE
-            - name: MARIADB_PASSWORD
+                  key: MYSQL_DATABASE
+            - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
-                  key: MARIADB_PASSWORD
-            - name: MARIADB_ROOT_PASSWORD
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
-                  key: MARIADB_ROOT_PASSWORD
-            - name: MARIADB_USER
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_USER
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
-                  key: MARIADB_USER
+                  key: MYSQL_USER
   
 ---
 
@@ -140,7 +140,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
-  name: retail-grant
+  name: uni-grant
   namespace: uni-ns
 spec:
   from:
@@ -161,7 +161,7 @@ metadata:
 stringData:
   DB_USER: college_user
   DB_PASSWORD: deereddy@123
-  DB_HOST: mariadb
+  DB_HOST: mysql-service
   DB_PORT: "3306"
   DB_NAME: mariadb
   GRIEVANCE_DB: grievance_db
@@ -313,7 +313,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: retail-route
+  name: uni-route
   namespace: noel-ns
 spec:
   parentRefs:
