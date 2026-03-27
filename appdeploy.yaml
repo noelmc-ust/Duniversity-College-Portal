@@ -322,7 +322,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /
+            value: /uni
       filters:
         - type: URLRewrite
           urlRewrite:
