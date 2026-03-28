@@ -62,7 +62,7 @@ spec:
   #   rollingUpdate:
   #     maxUnavailable: 1
   #     maxSurge: 1
-  volumeClaimTemplate:
+  volumeClaimTemplates:
     - metadata:
         name: mysql-uni-vct
       spec:
