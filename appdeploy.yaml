@@ -67,7 +67,7 @@ spec:
         name: mysql-uni-vct
       spec:
         accessModes: ["ReadWriteMany"]
-        StorageClassName: uni-
+        StorageClassName: nfs-csi-uni
         resources:
           requests:
             storage: 5Gi
