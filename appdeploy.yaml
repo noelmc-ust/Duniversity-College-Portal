@@ -41,7 +41,6 @@ stringData:
   MYSQL_USER: college_user
   MYSQL_PASSWORD: deereddy@123
 
----
 
 ---
 apiVersion: apps/v1
@@ -67,7 +66,7 @@ spec:
         name: mysql-uni-vct
       spec:
         accessModes: ["ReadWriteMany"]
-        StorageClassName: nfs-csi-uni
+        storageClassName: nfs-csi-uni
         resources:
           requests:
             storage: 5Gi
@@ -79,9 +78,6 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       volumes:
-        - name: mysql-uni
-          persistentVolumeClaim:
-            claimName: mysql-uni-pvc
         - name: mysql-init-uni
           configMap:
             name: mysql-uni-init
