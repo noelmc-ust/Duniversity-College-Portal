@@ -45,27 +45,39 @@ stringData:
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: mysql-deploy
   namespace: uni-ns
   labels:
     app: mysql
 spec:
-  replicas: 1
+  replicas: 3
+  minReadySeconds: 10
   selector:
     matchLabels:
       app: mysql
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
-      maxSurge: 1
+  # strategy:
+  #   type: RollingUpdate
+  #   rollingUpdate:
+  #     maxUnavailable: 1
+  #     maxSurge: 1
+  volumeClaimTemplate:
+    - metadata:
+        name: mysql-uni-vct
+      spec:
+        accessModes: ["ReadWriteMany"]
+        StorageClassName: uni-
+        resources:
+          requests:
+            storage: 5Gi
+  
   template:
     metadata:
       labels:
         app: mysql
     spec:
+      terminationGracePeriodSeconds: 10
       volumes:
         - name: mysql-uni
           persistentVolumeClaim:
@@ -79,10 +91,10 @@ spec:
           ports:
             - containerPort: 3306
           volumeMounts:
-            - name: mysql-uni
+            - name: mysql-uni-vct
               mountPath: /var/lib/mysql
-            - name: mysql-init-uni
-              mountPath: /docker-entrypoint-initdb.d
+            # - name: mysql-init-uni
+            #   mountPath: /docker-entrypoint-initdb.d
           env:
             - name: MYSQL_DATABASE
               valueFrom:
@@ -115,27 +127,12 @@ metadata:
 spec:
   selector:
     app: mysql
+  clusterIP: None
   ports:
   - port: 3306
     targetPort: 3306
-  type: ClusterIP
 
 
----
-
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mysql-uni-pvc
-  namespace: uni-ns
-spec:
-  resources:
-    requests:
-      storage: 5Gi
-  accessModes:
-    - ReadWriteMany
-  storageClassName: nfs-csi-uni
- 
 ---
 
 apiVersion: gateway.networking.k8s.io/v1beta1
