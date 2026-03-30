@@ -9,3 +9,13 @@ image:
 
 ports:
   containerPort: 3000
+  appPort: 83
+
+parameter:
+  server: 10.0.1.27
+  share: /var/nfs/general/uni
+
+statefull:
+  replicaCount: 2
+  port: 
+  containerPort: 3306

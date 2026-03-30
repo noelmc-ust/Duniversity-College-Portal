@@ -20,4 +20,4 @@ spec:
       backendRefs:
         - name: uni-service
           namespace: uni-ns
-          port: 83
+          port: {{.Values.ports.appPort}}

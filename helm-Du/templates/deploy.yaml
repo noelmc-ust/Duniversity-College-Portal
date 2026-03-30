@@ -124,8 +124,8 @@ spec:
   selector:
     app: uni
   ports:
-    - port: 83
-      targetPort: 3000
+    - port: {{.Values.ports.appPort}}
+      targetPort: {{.Values.ports.containerPort}}
   type: NodePort
 
 

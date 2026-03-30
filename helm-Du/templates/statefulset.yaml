@@ -36,7 +36,7 @@ metadata:
   labels:
     app: mysql
 spec:
-  replicas: 3
+  replicas: {{.Values.statefull.replicaCount}}
   minReadySeconds: 10
   selector:
     matchLabels:
@@ -70,7 +70,7 @@ spec:
         - name: mysql
           image: mysql:8.0
           ports:
-            - containerPort: 3306
+            - containerPort: {{.Values.statefull.containerPort}}
           volumeMounts:
             - name: mysql-uni-vct
               mountPath: /var/lib/mysql
@@ -110,5 +110,5 @@ spec:
     app: mysql
   clusterIP: None
   ports:
-  - port: 3306
-    targetPort: 3306
+  - port: {{.Values.statefull.containerPort}}
+    targetPort: {{.Values.statefull.containerPort}}
