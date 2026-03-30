@@ -8,7 +8,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: uni-deploy
-  minReplicas: 4
+  minReplicas: {{.Values.replicaCount}}
   maxReplicas: 8
   metrics:
     - type: Resource
