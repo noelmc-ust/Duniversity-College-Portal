@@ -22,7 +22,7 @@ metadata:
   namespace: uni-ns
 stringData:
   MYSQL_ROOT_PASSWORD: Root@123
-  MYSQL_DATABASE: mariadb
+  MYSQL_DATABASE: grievance_db
   MYSQL_USER: college_user
   MYSQL_PASSWORD: deereddy@123
 
