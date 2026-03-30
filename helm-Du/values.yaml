@@ -1,7 +1,7 @@
 app:
   name: uni-deploy
 
-replicaCount: 3
+replicaCount: 2
 
 image: 
   repository: nmc9812/uni
