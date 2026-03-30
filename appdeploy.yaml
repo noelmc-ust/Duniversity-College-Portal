@@ -316,7 +316,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /uni
+            value: /
       filters:
         - type: URLRewrite
           urlRewrite:
