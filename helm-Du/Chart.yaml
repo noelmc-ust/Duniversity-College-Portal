@@ -1,0 +1,9 @@
+apiVersion: v2
+name: Duniversity-chart
+description: duni college portal
+type: application
+version: 1.1.0 # char version
+appVersion: 1.1.0 # app version
+
+
+  
