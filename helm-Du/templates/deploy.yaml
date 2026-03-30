@@ -55,8 +55,9 @@ spec:
     spec:
       containers:
         - name: uni-container
-          image: {{.Values.image.repository}}: {{.Values.image.tag}}
-          ports: {{.Values.ports.containerPorts}}
+          image: {{.Values.image.repository}}:{{.Values.image.tag}}
+          ports:
+            - containerPort: {{ .Values.ports.containerPort }}
           env:
             - name: DB_HOST
               valueFrom:
