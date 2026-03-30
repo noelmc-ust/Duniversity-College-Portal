@@ -1,4 +1,14 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-uni-init
+  namespace: uni-ns
+data:
+  db-init.sql: |
+{{ .Files.Get "db/init/init.sql" | indent 4 }}
+
+---
+apiVersion: v1
 kind: Secret
 metadata:
   name: mysql-secret
@@ -57,8 +67,8 @@ spec:
           volumeMounts:
             - name: mysql-uni-vct
               mountPath: /var/lib/mysql
-            # - name: mysql-init-uni
-            #   mountPath: /docker-entrypoint-initdb.d
+            - name: mysql-init-uni
+              mountPath: /docker-entrypoint-initdb.d
           env:
             - name: MYSQL_DATABASE
               valueFrom:
