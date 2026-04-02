@@ -1,6 +1,6 @@
 auth:
-  adminUser: admin
-  adminPassword: "YourSecurePassword"
+  adminUser: nmc
+  adminPassword: "helloguys"
 
 service:
   type: NodePort
