@@ -1,3 +1,9 @@
+image:
+  registry: docker.io
+  repository: bitnami/keycloak
+  tag: 26
+  pullPolicy: Always
+
 auth:
   adminUser: nmc
   adminPassword: "helloguys"
@@ -7,11 +13,10 @@ service:
   nodePorts:
     http: 30080
 
-# Essential for HAProxy: Tells Keycloak it is behind a reverse proxy
 proxy: edge
 
 postgresql:
   enabled: true
   persistence:
-    storageClass: "nfs-csi"
+    storageClass: "nfs-csi-uni" 
     size: 8Gi
