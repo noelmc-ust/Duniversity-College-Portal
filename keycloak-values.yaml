@@ -1,0 +1,17 @@
+auth:
+  adminUser: admin
+  adminPassword: "YourSecurePassword"
+
+service:
+  type: NodePort
+  nodePorts:
+    http: 30080
+
+# Essential for HAProxy: Tells Keycloak it is behind a reverse proxy
+proxy: edge
+
+postgresql:
+  enabled: true
+  persistence:
+    storageClass: "nfs-csi"
+    size: 8Gi
