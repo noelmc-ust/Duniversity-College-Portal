@@ -11,9 +11,36 @@ spec:
     - target: admission.k8s.gatekeeper.sh
       rego: |
         package k8srequiredresources
- 
+
+        # Violation for missing resource limits
         violation[{"msg": msg}] {
           container := input.review.object.spec.containers[_]
           not container.resources.limits
           msg := sprintf("Container %v must have resource limits", [container.name])
+        }
+
+        # Violation for using the 'latest' image tag
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          [image_name, tag] := split_image(container.image)
+          
+          # Check if tag is 'latest' or if no tag was provided
+          is_latest(tag)
+          msg := sprintf("Container %v is using an invalid image tag [%v]. The 'latest' tag is prohibited.", [container.name, tag])
+        }
+
+        # Helper to split image and tag
+        split_image(image) = [image_name, tag] {
+          contains(image, ":")
+          parts := split(image, ":")
+          image_name := parts[0]
+          tag := parts[1]
+        }
+
+        split_image(image) = [image, "latest"] {
+          not contains(image, ":")
+        }
+
+        is_latest(tag) {
+          tag == "latest"
         }
