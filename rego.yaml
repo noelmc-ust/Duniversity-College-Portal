@@ -15,7 +15,7 @@ spec:
         # Violation for missing resource limits
         violation[{"msg": msg}] {
           container := input.review.object.spec.containers[_]
-          not container.resources.limits
+          not container.resources
           msg := sprintf("Container %v must have resource limits", [container.name])
         }
 
