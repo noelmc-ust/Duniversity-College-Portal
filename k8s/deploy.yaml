@@ -53,12 +53,6 @@ spec:
       labels:
         app: uni
     spec:
-
-      tolerations:
-      - key: "key1"
-        operator: "Equals"
-        value: "value1"
-        effect: NoSchedule    
       containers:
         - name: uni-container
           image: {{.Values.image.repository}}:{{.Values.image.tag}}

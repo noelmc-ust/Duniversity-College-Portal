@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-uni-init
+  namespace: uni-ns
+data:
+
+  00-create-dbs-and-user.sql: |
+{{ .Files.Get "db/init/00-create-dbs-and-user.sql" | indent 4 }}
+
+  01-schema.sql: |
+{{ .Files.Get "db/init/01-schema.sql" | indent 4 }}
+
+  02-init.sql: |
+{{ .Files.Get "db/init/init.sql" | indent 4 }}
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: uni-ns
+stringData:
+  MYSQL_ROOT_PASSWORD: Root@123
+  MYSQL_DATABASE: grievance_db
+  MYSQL_USER: college_user
+  MYSQL_PASSWORD: deereddy@123
+
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-deploy
+  namespace: uni-ns
+  labels:
+    app: mysql
+spec:
+  replicas: {{.Values.statefull.replicaCount}}
+  minReadySeconds: 10
+  selector:
+    matchLabels:
+      app: mysql
+  # strategy:
+  #   type: RollingUpdate
+  #   rollingUpdate:
+  #     maxUnavailable: 1
+  #     maxSurge: 1
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-uni-vct
+      spec:
+        accessModes: ["ReadWriteMany"]
+        storageClassName: nfs-csi-uni
+        resources:
+          requests:
+            storage: 5Gi
+  
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: mysql-init-uni
+          configMap:
+            name: mysql-uni-init
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: {{.Values.statefull.containerPort}}
+          volumeMounts:
+            - name: mysql-uni-vct
+              mountPath: /var/lib/mysql
+            - name: mysql-init-uni
+              mountPath: /docker-entrypoint-initdb.d
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+  
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: uni-ns
+spec:
+  selector:
+    app: mysql
+  clusterIP: None
+  ports:
+  - port: {{.Values.statefull.containerPort}}
+    targetPort: {{.Values.statefull.containerPort}}

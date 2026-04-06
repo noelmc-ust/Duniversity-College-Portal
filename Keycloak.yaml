@@ -1,0 +1,13 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: my-keycloak
+  namespace: keycloak
+spec:
+  instances: 1
+  db:
+    vendor: postgres 
+  hostname:
+    hostname: <your-haproxy-ip>
+  http:
+    httpEnabled: true
