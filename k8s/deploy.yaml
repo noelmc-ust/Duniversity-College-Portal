@@ -53,6 +53,11 @@ spec:
       labels:
         app: uni
     spec:
+      tolerations:
+      - key: "key1"
+        operator: "Equals"
+        value: "value1"
+        effect: NoSchedule 
       containers:
         - name: uni-container
           image: nmc9812/uni:v1.1.0
