@@ -57,7 +57,7 @@ spec:
       - key: "key1"
         operator: "Equal"
         value: "value1"
-        effect: NoSchedule 
+        effect: NoExecute 
       containers:
         - name: uni-container
           image: nmc9812/uni:v1.1.0
