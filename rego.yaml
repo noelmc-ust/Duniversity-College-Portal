@@ -26,11 +26,11 @@ spec:
           
           # Check if tag is 'latest' or if no tag was provided
           is_latest(tag)
-          msg := sprintf("Container %v is using an invalid image tag [%v]. The 'latest' tag is prohibited.", [container.name, tag])
+        image  msg := sprintf("Container %v is using an invalid image tag [%v]. The 'latest' tag is prohibited.", [container.name, tag])
         }
 
         # Helper to split image and tag
-        split_image(image) = [image_name, tag] {
+        split_image() = [image_name, tag] {
           contains(image, ":")
           parts := split(image, ":")
           image_name := parts[0]
