@@ -34,12 +34,12 @@ stringData:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{.Values.app.name}}
+  name: uni-deploy
   namespace: uni-ns
   labels:
     app: uni
 spec:
-  replicas: {{.Values.replicaCount}}
+  replicas: 2
   selector:
     matchLabels:
       app: uni
@@ -55,9 +55,9 @@ spec:
     spec:
       containers:
         - name: uni-container
-          image: {{.Values.image.repository}}:{{.Values.image.tag}}
+          image: nmc9812/uni:v1.1.0
           ports:
-            - containerPort: {{ .Values.ports.containerPort }}
+            - containerPort: 3000
           env:
             - name: DB_HOST
               valueFrom:
@@ -124,8 +124,8 @@ spec:
   selector:
     app: uni
   ports:
-    - port: {{.Values.ports.appPort}}
-      targetPort: {{.Values.ports.containerPort}}
+    - port: 83
+      targetPort: 3000
   type: NodePort
 
 
