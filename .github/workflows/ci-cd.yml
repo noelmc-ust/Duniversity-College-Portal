@@ -16,7 +16,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fixes the "Could not find ref: master" Sonar warning
+          fetch-depth: 0 
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -27,15 +27,13 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v2
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
+      # FIX: Merged the two Sonar steps into one and added project details
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
         with:
           args: >
+            -Dsonar.organization=noelmc-ust
+            -Dsonar.projectKey=noelmc-ust_Duniversity-College-Portal
             -Dsonar.qualitygate.wait=true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -43,7 +41,7 @@ jobs:
       - name: Docker Build Test
         run: docker build -t validation-image:${{ github.sha }} .
 
-  # JOB 2: Runs only on master branch (usually after a merge)
+  # JOB 2: Runs only on master branch
   cd:
     name: Build & Push Docker Image
     if: github.ref == 'refs/heads/master'
@@ -59,23 +57,23 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t $IMAGE_NAME:$IMAGE_TAG .
-          docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+          docker build -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_NAME }}:latest
 
       - name: Scan Image (Trivy)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          exit-code: '1' # This tells the pipeline to fail if vulnerabilities are found
+          exit-code: '1' 
           severity: 'CRITICAL,HIGH'
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3 # Using the official action is more secure
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Push Image
         run: |
-          docker push $IMAGE_NAME:$IMAGE_TAG
-          docker push $IMAGE_NAME:latest
+          docker push ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.IMAGE_NAME }}:latest
