@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  # JOB 1: Runs only on develop branch
+  # JOB 1: CI (Develop)
   ci:
     name: Validate Code (Develop)
     if: github.ref == 'refs/heads/develop'
@@ -29,40 +29,39 @@ jobs:
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
         with:
           args: >
             -Dsonar.organization=noelmc-ust
             -Dsonar.projectKey=noelmc-ust_Duniversity-College-Portal
             -Dsonar.qualitygate.wait=true
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     
       - name: Docker Build Test
         run: docker build -t validation-image:${{ github.sha }} .
 
-  # JOB 2: Runs only on master branch
+  # JOB 2: CD (Master)
   cd:
     name: Build & Push Docker Image
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    # Define image name here so all steps can see it easily
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set Image Variables
-        run: |
-          echo "IMAGE_NAME=${{ secrets.DOCKER_USERNAME }}/app" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
-
       - name: Build Docker Image
         run: |
-          docker build -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
-          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} ${{ env.IMAGE_NAME }}:latest
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
 
       - name: Scan Image (Trivy)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           exit-code: '1' 
           severity: 'CRITICAL,HIGH'
 
@@ -74,5 +73,5 @@ jobs:
 
       - name: Push Image
         run: |
-          docker push ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.IMAGE_NAME }}:latest
