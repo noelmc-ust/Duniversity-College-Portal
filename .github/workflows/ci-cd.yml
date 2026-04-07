@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  # JOB 1: CI (Develop)
+  # JOB 1: CI (Runs on develop)
   ci:
     name: Validate Code (Develop)
     if: github.ref == 'refs/heads/develop'
@@ -31,30 +31,43 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
     
       - name: Docker Build Test
         run: docker build -t validation-image:${{ github.sha }} .
 
-  # JOB 2: CD (Master)
+  # JOB 2: CD (Now runs on BOTH develop and master)
   cd:
     name: Build & Push Docker Image
-    if: github.ref == 'refs/heads/master'
+    # CHANGE 1: Allow develop branch to trigger this job
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    # Define image name here so all steps can see it easily
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Docker Image
+      - name: Build and Tag Docker Image
         run: |
+          # CHANGE 2: Dynamic Tagging
+          # If master -> latest, If develop -> dev
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            TAG="latest"
+          else
+            TAG="dev"
+          fi
+          
           docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
-          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
+          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:$TAG
+          
+          # Save the tag to GITHUB_ENV so later steps can use it
+          echo "FINAL_TAG=$TAG" >> $GITHUB_ENV
 
       - name: Scan Image (Trivy)
         uses: aquasecurity/trivy-action@master
         with:
+          # Use the SHA for a specific scan, or the tag we just created
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           exit-code: '1' 
           severity: 'CRITICAL,HIGH'
@@ -68,4 +81,4 @@ jobs:
       - name: Push Image
         run: |
           docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker push ${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.IMAGE_NAME }}:${{ env.FINAL_TAG }}
