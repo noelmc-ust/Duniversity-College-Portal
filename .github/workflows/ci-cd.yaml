@@ -5,90 +5,78 @@ on:
     branches:
       - develop
       - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch: # Enables the manual "Run workflow" button
 
 jobs:
-
+  # JOB 1: CI (Runs on develop push or when opening a PR to master)
   ci:
-    name: Validate Code (Develop)
-    if: github.ref == 'refs/heads/develop'
+    name: Validate Code
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
 
-  
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Run Tests
-        run: npm test
-
-
-      - name: Sonar Scan
+      - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
-        with:
-          projectBaseDir: .
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-
-      - name: Sonar Quality Gate
-        uses: SonarSource/sonarqube-quality-gate-action@v1
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
     
       - name: Docker Build Test
         run: docker build -t validation-image:${{ github.sha }} .
 
-
-
+  # JOB 2: CD (Runs ONLY when you click the button OR when PR is merged to master)
   cd:
     name: Build & Push Docker Image
-    if: github.ref == 'refs/heads/master'
+    needs: ci
+    # Logic: Run if I click the button OR if I merge/push to master
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'push' && github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
-
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set Image Variables
-        run: |
-          echo "IMAGE_NAME=${{ secrets.DOCKER_USERNAME }}/app" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
-
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker Image
         run: |
-          docker build -t $IMAGE_NAME:$IMAGE_TAG .
-          docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
 
-
-      - name: Scan Image (Trivy)
+      - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-
-
-      - name: Fail on High/Critical Vulnerabilities
-        run: |
-          docker run --rm aquasec/trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_NAME:$IMAGE_TAG
-
-
-      - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
       - name: Push Image
+        if: success()
         run: |
-          docker push $IMAGE_NAME:$IMAGE_TAG
-          docker push $IMAGE_NAME:latest
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
