@@ -64,7 +64,7 @@ jobs:
         with:
           image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
           format: 'table'
-          exit-code: '0' # Fails the build if high/critical vulns are found
+          exit-code: '1' # Fails the build if high/critical vulns are found
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
