@@ -34,8 +34,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     
       - name: Docker Build Test
-        run: docker build -t validation-image:${{ github.sha }} .
-
+        run: docker build --no-cache -t validation-image:${{ github.sha }} .
+        
   cd:
     name: Build & Push Docker Image
     # Runs only on manual trigger OR actual push/merge to master
@@ -55,7 +55,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker build --no-cache -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
           docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
 
       # FIXED TRIVY STEP
