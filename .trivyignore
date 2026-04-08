@@ -1,0 +1,2 @@
+# Ignore picomatch ReDoS for now
+CVE-2026-33671
