@@ -10,7 +10,6 @@ on:
 jobs:
   ci:
     name: Validate Code
-    # This now runs on develop pushes AND Pull Requests to master
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
@@ -28,17 +27,26 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # --- SNYK SCA SCAN ---
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      # --- SONARQUBE SAST SCAN ---
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: http://3.227.242.155:9000
     
       - name: Docker Build Test
         run: docker build -t validation-image:${{ github.sha }} .
 
   cd:
     name: Build & Push Docker Image
-    # Runs only on manual trigger OR actual push/merge to master
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     env:
@@ -58,19 +66,18 @@ jobs:
           docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
           docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
 
-      # FIXED TRIVY STEP
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
           format: 'table'
-          exit-code: '1' # Fails the build if high/critical vulns are found
+          exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
       - name: Push Image
-        if: success() # Only push if Trivy scan passes
+        if: success()
         run: |
           docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.IMAGE_NAME }}:latest
